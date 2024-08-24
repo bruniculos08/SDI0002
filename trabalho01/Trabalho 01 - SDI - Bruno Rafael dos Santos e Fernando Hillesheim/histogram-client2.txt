@@ -1,0 +1,10 @@
+freq(1) = 0
+freq(2) = 16
+freq(3) = 10
+freq(4) = 10
+freq(5) = 0
+freq(6) = 10
+freq(7) = 5
+freq(8) = 10
+freq(9) = 10
+freq(10) = 0
