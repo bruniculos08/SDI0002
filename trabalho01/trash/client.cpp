@@ -1,10 +1,15 @@
 #include "net_stuff.h"
 using namespace std;
 
+typedef struct Thread_arg{
+    int port;
+    int *freq;
+} thread_arg;
+
 void *listen(void *arg)
 {
-    int *freq;
-    freq = (int *) arg;
+    thread_arg *args_list;
+    args_list = (thread_arg *) arg;
 
     int socket_id = socket(AF_INET, SOCK_DGRAM, 0);
     if(socket_id < 0)
@@ -14,7 +19,7 @@ void *listen(void *arg)
     }
 
     sockaddr_in server_address = {0};
-    int port = 12345;
+    int port = args_list->port;
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(port);
     server_address.sin_addr.s_addr = INADDR_ANY;
@@ -33,26 +38,32 @@ void *listen(void *arg)
         int msg_len = recvfrom(socket_id, buffer, 1024, 0, (sockaddr *) &server_address,  &server_len);
         cout << "\n[+] Received: " << buffer << endl;
         sscanf(buffer, "%d", &index);
-        freq[index - 1] += 1;
+        args_list->freq[index - 1] += 1;
     }
     pthread_exit((void *) 0);
 }
 
-int main(void)
+int main(int argc, const char *argv[])
 {
+    int id = atoi(argv[1]);
     pthread_t listener;
-    int *freq = new int[10];
-    int rc = pthread_create(&listener, NULL, listen, (void *) freq);
+    thread_arg *args;
+    args = new thread_arg;
+    args->port = 60000 + id;
+    args->freq = new int[10] ();
+    int rc = pthread_create(&listener, NULL, listen, (void *) args);
     sleep(15);
     rc = pthread_cancel(listener); 
 
     FILE *fptr;
-    fptr = fopen("histogram.txt", "w");
+    char file_name[1024];
+    sprintf(file_name, "histogram-client%d.txt", id);
+    fptr = fopen(file_name, "w");
     for(int i = 0; i < 10; i++)
     {
-        fprintf(fptr, "freq(%d) = %d\n", i + 1, freq[i]);
+        fprintf(fptr, "freq(%d) = %d\n", i + 1, args->freq[i]);
     }
     fclose(fptr);
-    delete [] freq;
+    cout << "[+] Client " << id << " turning off (port " << args->port << ")" << endl;
     return 0;
 }
