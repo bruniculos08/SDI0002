@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.Scanner;
 
 public class ServerDatabase implements IDatabase{
     public ServerDatabase () {};
@@ -52,8 +53,16 @@ public class ServerDatabase implements IDatabase{
     {
       try 
       {
-        Path pf = Path.of(filename.concat(".txt"));
-        String text = Files.readString(pf);
+        String text = "";
+        try {
+          str = new String(Files.readAllBytes(Paths.get(file_path)));
+        }
+        catch(IOException e)
+        {
+          e.printStackTrace();
+        }
+
+
         String[] lines = text.split("\n");
 
         int rows = lines.length;
