@@ -1,0 +1,111 @@
+# Fonte: https://medium.com/@kayvan.sol2/deploying-apache-cassandra-cluster-3-nodes-with-docker-compose-3634ef8345e8
+# Comando: docker compose -f cassandra-compose.yml up
+version: "3.3"
+
+networks:
+  cassandra-net:
+    driver: bridge
+    # Conforme o site Docker Docs (https://docs.docker.com/engine/network/drivers/bridge/):
+    # "The Docker bridge driver automatically installs rules in the host machine so that containers on different bridge 
+    # networks can't communicate directly with each other. Bridge networks apply to containers running on the same Docker 
+    # daemon host."
+
+services:
+
+  cassandra-1:
+    image: "cassandra:latest"   # cassandra:4.1.3
+    container_name: "cassandra-1"
+    ports:
+      # Conexões (Porta PC : Porta Container)
+      - 7000:7000   # Conexão (Porta PC : Porta do (?) no Container)
+      - 9042:9042   # Conexão (Porta PC : Porta do Cassandra no Container)
+    networks:
+      - cassandra-net
+    environment:
+      - CASSANDRA_START_RPC=true        # default
+      - CASSANDRA_RPC_ADDRESS=0.0.0.0   # default
+      - CASSANDRA_LISTEN_ADDRESS=auto   # default, use IP addr of container # = CASSANDRA_BROADCAST_ADDRESS
+      - CASSANDRA_CLUSTER_NAME=my-cluster # Nome do cluster
+        # De acordo com o site DataStax Documentation 
+        # (https://docs.datastax.com/en/cassandra-oss/2.2/cassandra/architecture/archsnitchGossipPF.html):
+        # "This snitch is recommended for production. It uses rack and datacenter information for the local node defined in 
+        # the cassandra-rackdc.properties file and propagates this information to other nodes via gossip."
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_DC=my-datacenter-1
+    volumes:
+      - cassandra-node-1:/var/lib/cassandra:rw
+    restart:
+      on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status"]
+      interval: 2m
+      start_period: 2m
+      timeout: 10s
+      retries: 3
+
+  cassandra-2:
+    image: "cassandra:latest"  # cassandra:4.1.3
+    container_name: "cassandra-2"
+    ports:
+      - 9043:9042
+    networks:
+      - cassandra-net
+    environment:
+      - CASSANDRA_START_RPC=true       # default
+      - CASSANDRA_RPC_ADDRESS=0.0.0.0  # default
+      - CASSANDRA_LISTEN_ADDRESS=auto  # default, use IP addr of container # = CASSANDRA_BROADCAST_ADDRESS
+      - CASSANDRA_CLUSTER_NAME=my-cluster
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_DC=my-datacenter-1
+      - CASSANDRA_SEEDS=cassandra-1
+    depends_on:
+      cassandra-1:
+        condition: service_healthy
+    volumes:
+      - cassandra-node-2:/var/lib/cassandra:rw
+    restart:
+      on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status"]
+      interval: 2m
+      start_period: 2m
+      timeout: 10s
+      retries: 3
+      # O health check faz o seguinte:
+      # - após 2 minutos executa "nodetool status"
+      # - se o comando retorna exit code 0 em menos de 10 segundos o container é considerado healthy
+      # - repete a verificação a cada 2 minutos 3 vezes
+
+  cassandra-3:
+    image: "cassandra:latest"  # cassandra:4.1.3
+    container_name: "cassandra-3"
+    ports:
+      - 9044:9042
+    networks:
+      - cassandra-net
+    environment:
+      - CASSANDRA_START_RPC=true       # default
+      - CASSANDRA_RPC_ADDRESS=0.0.0.0  # default
+      - CASSANDRA_LISTEN_ADDRESS=auto  # default, use IP addr of container # = CASSANDRA_BROADCAST_ADDRESS
+      - CASSANDRA_CLUSTER_NAME=my-cluster
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_DC=my-datacenter-1
+      - CASSANDRA_SEEDS=cassandra-1
+    depends_on:
+      cassandra-2:
+        condition: service_healthy
+    volumes:
+      - cassandra-node-3:/var/lib/cassandra:rw
+    restart:
+      on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status"]
+      interval: 2m
+      start_period: 2m
+      timeout: 10s
+      retries: 3
+
+volumes:
+  cassandra-node-1:
+  cassandra-node-2:
+  cassandra-node-3:
