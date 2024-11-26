@@ -1,0 +1,12 @@
+CREATE KEYSPACE sensores WITH REPLICATION = 
+{ 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
+
+CREATE TABLE temperaturas 
+(id_sensor text, momento_sensor timeuuid, 
+temperatura_graus float, 
+PRIMARY KEY (id_sensor, momento_sensor));
+
+INSERT INTO temperaturas(id_sensor, momento_sensor, temperatura_graus) VALUES ('02', now(), 25);
+
+select * from temperaturas;
+
